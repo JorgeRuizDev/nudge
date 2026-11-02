@@ -234,7 +234,11 @@ fun RuleEditorScreen(
 
             if (state.blockMode.usesDuration) {
                 val durationLabel =
-                    if (state.blockMode == BlockMode.HOLD) "Hold Duration" else "Delay Duration"
+                    when (state.blockMode) {
+                        BlockMode.HOLD -> "Hold Duration"
+                        BlockMode.WEBVIEW -> "Pause Duration"
+                        else -> "Delay Duration"
+                    }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         durationLabel,
@@ -898,4 +902,4 @@ private fun TimeSelector(
  * "Block the whole app" switch in `UnifiedAppConfigScreen`.
  */
 private val EDITOR_BLOCKING_MODES =
-    listOf(BlockMode.HARD_BLOCK, BlockMode.DELAY, BlockMode.HOLD, BlockMode.BREATHING)
+    listOf(BlockMode.HARD_BLOCK, BlockMode.DELAY, BlockMode.HOLD, BlockMode.BREATHING, BlockMode.WEBVIEW)

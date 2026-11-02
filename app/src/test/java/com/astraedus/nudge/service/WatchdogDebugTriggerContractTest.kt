@@ -124,7 +124,7 @@ class WatchdogDebugTriggerContractTest {
         assertFalse(
             "A copy of WatchdogDebugReceiver must never appear in src/main, the debug source set " +
                 "IS the guarantee that it cannot ship",
-            File(file(receiver).path.replace("/debug/", "/main/")).exists()
+            File(file(receiver).path.replace("/debug/", "/main/").replace("\\debug\\", "\\main\\")).exists()
         )
     }
 

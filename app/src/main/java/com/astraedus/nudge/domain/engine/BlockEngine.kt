@@ -194,6 +194,6 @@ class BlockEngine @Inject constructor(
          * decided above, ahead of the daily budget.
          */
         private val TIMED_MODES_STRONGEST_FIRST =
-            listOf(BlockMode.DELAY, BlockMode.HOLD, BlockMode.BREATHING)
+            listOf(BlockMode.DELAY, BlockMode.HOLD, BlockMode.BREATHING, BlockMode.WEBVIEW)
     }
 }

@@ -33,6 +33,8 @@ class WebDomainDetectorTest {
     @Test
     fun `isBrowser returns true for Brave Edge Opera DuckDuckGo`() {
         assertTrue(detector.isBrowser("com.brave.browser"))
+        assertTrue(detector.isBrowser("com.brave.browser_beta"))
+        assertTrue(detector.isBrowser("com.brave.browser_nightly"))
         assertTrue(detector.isBrowser("com.microsoft.emmx"))
         assertTrue(detector.isBrowser("com.opera.browser"))
         assertTrue(detector.isBrowser("com.duckduckgo.mobile.android"))

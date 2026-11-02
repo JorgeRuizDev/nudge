@@ -227,4 +227,32 @@ class EvaluateBlockWebDomainTest {
         assertTrue(result.decision is BlockDecision.Allow)
         assertNull(result.trackingPackage)
     }
+    @Test
+    fun `rule on brave beta does not leak to normal brave browser`() = runTest {
+        every { blockRuleRepository.getEnabledRules() } returns flowOf(
+            listOf(rule(mode = "HARD_BLOCK", webDomains = "reddit.com", packageName = "com.brave.browser_beta"))
+        )
+
+        // Visiting reddit.com in normal Brave
+        val normalBraveResult = useCase.evaluateWebDomain("https://reddit.com/r/android", browserPackage = "com.brave.browser")
+        assertTrue(normalBraveResult.decision is BlockDecision.Allow)
+
+        // Visiting reddit.com in Brave Beta
+        val braveBetaResult = useCase.evaluateWebDomain("https://reddit.com/r/android", browserPackage = "com.brave.browser_beta")
+        assertTrue(braveBetaResult.decision is BlockDecision.Block)
+        assertEquals("com.brave.browser_beta", braveBetaResult.trackingPackage)
+    }
+
+    @Test
+    fun `rule on non-browser app like instagram applies across all browsers`() = runTest {
+        every { blockRuleRepository.getEnabledRules() } returns flowOf(
+            listOf(rule(mode = "HARD_BLOCK", webDomains = "instagram.com", packageName = "com.instagram.android"))
+        )
+
+        val braveResult = useCase.evaluateWebDomain("https://instagram.com/reels", browserPackage = "com.brave.browser")
+        assertTrue(braveResult.decision is BlockDecision.Block)
+
+        val braveBetaResult = useCase.evaluateWebDomain("https://instagram.com/reels", browserPackage = "com.brave.browser_beta")
+        assertTrue(braveBetaResult.decision is BlockDecision.Block)
+    }
 }

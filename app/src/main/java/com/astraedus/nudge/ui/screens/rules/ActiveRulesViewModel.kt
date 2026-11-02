@@ -173,6 +173,7 @@ class ActiveRulesViewModel @Inject constructor(
                 "DELAY" -> "Delay ${delaySeconds}s"
                 "HOLD" -> "Hold ${delaySeconds}s"
                 "BREATHING" -> "Breathing ${delaySeconds}s"
+                "WEBVIEW" -> "Webview ${delaySeconds}s"
                 else -> mode
             }
         }

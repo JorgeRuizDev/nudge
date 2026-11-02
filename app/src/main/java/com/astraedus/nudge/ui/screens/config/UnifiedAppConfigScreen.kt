@@ -91,7 +91,16 @@ fun UnifiedAppConfigScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(state.appName.ifEmpty { state.packageName })
+                    Column {
+                        Text(state.appName.ifEmpty { state.packageName })
+                        if (state.appName.isNotEmpty() && state.packageName.isNotEmpty()) {
+                            Text(
+                                state.packageName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -1125,7 +1134,7 @@ private fun TimeSelector(
  * nothing rather than carving out an unblocked window during those hours.
  */
 private val BLOCKING_MODES =
-    listOf(BlockMode.HARD_BLOCK, BlockMode.DELAY, BlockMode.HOLD, BlockMode.BREATHING)
+    listOf(BlockMode.HARD_BLOCK, BlockMode.DELAY, BlockMode.HOLD, BlockMode.BREATHING, BlockMode.WEBVIEW)
 
 /**
  * The words on an in-app FEATURE override chip. Separate from [blockModeLabel] only because
@@ -1138,4 +1147,5 @@ private fun featureModeLabel(mode: FeatureMode): String = when (mode) {
     FeatureMode.DELAY -> "Delay"
     FeatureMode.HOLD -> "Hold"
     FeatureMode.BREATHING -> "Breathing"
+    FeatureMode.WEBVIEW -> "Webview"
 }

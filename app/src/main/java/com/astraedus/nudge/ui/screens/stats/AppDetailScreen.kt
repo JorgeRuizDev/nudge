@@ -228,5 +228,6 @@ private fun formatBlockMode(mode: String): String = when (mode) {
     "DELAY" -> "Delay"
     "HOLD" -> "Hold"
     "BREATHING" -> "Breathing"
+    "WEBVIEW" -> "Webview"
     else -> mode.lowercase().replaceFirstChar { it.uppercase() }
 }

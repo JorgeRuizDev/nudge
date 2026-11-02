@@ -20,6 +20,7 @@ internal fun blockModeLabel(mode: BlockMode): String = when (mode) {
     BlockMode.DELAY -> "Delay"
     BlockMode.HOLD -> "Hold"
     BlockMode.BREATHING -> "Breathing"
+    BlockMode.WEBVIEW -> "Webview"
 }
 
 /** One line under the picker saying what the selected mode actually does. */
@@ -29,4 +30,5 @@ internal fun blockModeDescription(mode: BlockMode): String = when (mode) {
     BlockMode.DELAY -> "Shows a countdown timer before letting you in. Gives you time to reconsider."
     BlockMode.HOLD -> "You hold a button for the whole wait. Let go and it starts over."
     BlockMode.BREATHING -> "Guides you through a breathing exercise before opening. Calms the impulse."
+    BlockMode.WEBVIEW -> "Shows an in-app web page with a pause timer before opening."
 }

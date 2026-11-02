@@ -40,6 +40,7 @@ object WebBlockMode {
         "DELAY" -> BlockMode.DELAY
         "HOLD" -> BlockMode.HOLD
         "BREATHING" -> BlockMode.BREATHING
+        "WEBVIEW" -> BlockMode.WEBVIEW
         else -> null
     }
 }

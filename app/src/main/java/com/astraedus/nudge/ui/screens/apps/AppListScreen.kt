@@ -77,6 +77,13 @@ fun AppListScreen(
                     AppListItem(
                         appName = app.appInfo.appName,
                         icon = app.appInfo.icon,
+                        supportingContent = {
+                            Text(
+                                text = app.appInfo.packageName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
                         modifier = Modifier.clickable {
                             onNavigateToRuleEditor(app.appInfo.packageName)
                         },

@@ -128,7 +128,7 @@ class HoldModeContractTest {
         assertEquals(
             "onTimerComplete must be the completion callback for EVERY timed overlay, so there is " +
                 "one completion path and not one per mode",
-            3,
+            4,
             Regex("""onComplete = \{ onTimerComplete\(\) \}""").findAll(activity).count()
         )
         assertTrue(

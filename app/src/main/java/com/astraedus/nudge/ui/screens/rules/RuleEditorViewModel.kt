@@ -193,6 +193,7 @@ class RuleEditorViewModel @Inject constructor(
                         "DELAY" -> "Delay ${rule.delaySeconds}s"
                         "HOLD" -> "Hold ${rule.delaySeconds}s"
                         "BREATHING" -> "Breathing ${rule.delaySeconds}s"
+                        "WEBVIEW" -> "Webview ${rule.delaySeconds}s"
                         else -> rule.mode
                     }
                     val features = rule.inAppFeatures?.split(",")?.filter { it.isNotBlank() } ?: emptyList()

@@ -233,6 +233,7 @@ val allowedMergedPermissions = setOf(
     "android.permission.WRITE_SECURE_SETTINGS",
     "android.permission.QUERY_ALL_PACKAGES",
     "android.permission.CAMERA", // QR / barcode scanner, requested at runtime (ui/qr/)
+    "android.permission.INTERNET", // Webview pause pages (ui/overlay/WebviewContent)
     "android.permission.WAKE_LOCK", // WorkManager
     "android.permission.ACCESS_NETWORK_STATE", // WorkManager constraint tracking; not network access
     "dev.astraedus.nudge.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" // androidx.core, app-private

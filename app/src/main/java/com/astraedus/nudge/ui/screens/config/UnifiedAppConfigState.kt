@@ -158,7 +158,11 @@ data class UnifiedAppConfigState(
      * second, separate wait.
      */
     val delayDurationLabel: String
-        get() = if (durationMode == BlockMode.HOLD) "Hold Duration" else "Delay Duration"
+        get() = when (durationMode) {
+            BlockMode.HOLD -> "Hold Duration"
+            BlockMode.WEBVIEW -> "Pause Duration"
+            else -> "Delay Duration"
+        }
 
     /**
      * Whether this package exposes a vanishable in-app tab to cover (e.g. Instagram's Reels

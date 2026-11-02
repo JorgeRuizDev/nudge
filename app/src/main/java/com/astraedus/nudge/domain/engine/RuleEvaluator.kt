@@ -71,6 +71,7 @@ class RuleEvaluator @Inject constructor() {
             BlockMode.DELAY -> "Delay"
             BlockMode.HOLD -> "Hold"
             BlockMode.BREATHING -> "Breathing"
+            BlockMode.WEBVIEW -> "Webview"
         }
         parts += modeName
 

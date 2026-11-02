@@ -48,7 +48,8 @@ enum class BlockMode {
      * strictly more attention, so flipping between them is not a way around Strict Mode.
      */
     HOLD,
-    BREATHING;
+    BREATHING,
+    WEBVIEW;
 
     /**
      * Whether this mode spends the rule's `delaySeconds`, i.e. whether a duration picker is
@@ -58,5 +59,5 @@ enum class BlockMode {
      * the three call sites that used to spell it out: a mode added without being listed there would
      * have silently shipped with an uneditable duration, stuck on whatever was last saved.
      */
-    val usesDuration: Boolean get() = this == DELAY || this == HOLD || this == BREATHING
+    val usesDuration: Boolean get() = this == DELAY || this == HOLD || this == BREATHING || this == WEBVIEW
 }

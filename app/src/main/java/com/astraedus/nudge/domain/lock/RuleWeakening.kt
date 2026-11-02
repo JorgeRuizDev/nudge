@@ -31,7 +31,7 @@ object RuleWeakening {
         // of it -- so neither is a softer version of the other, and switching between them at one
         // duration is not an edit Strict Mode should stand in the way of. Ranking HOLD lower would
         // make the stricter of the two the one that needs a challenge to select.
-        "DELAY", "HOLD" -> 2
+        "DELAY", "HOLD", "WEBVIEW" -> 2
         "BREATHING" -> 1
         "NONE" -> 0
         else -> 0

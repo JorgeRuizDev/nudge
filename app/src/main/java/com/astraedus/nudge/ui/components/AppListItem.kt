@@ -17,11 +17,13 @@ fun AppListItem(
     appName: String,
     icon: Drawable?,
     modifier: Modifier = Modifier,
+    supportingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
     ListItem(
         headlineContent = { Text(appName) },
+        supportingContent = supportingContent,
         leadingContent = {
             if (icon != null) {
                 val bitmap = remember(icon) { icon.toBitmap(48, 48).asImageBitmap() }

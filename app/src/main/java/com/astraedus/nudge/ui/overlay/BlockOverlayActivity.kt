@@ -24,6 +24,12 @@ import com.astraedus.nudge.domain.block.WebBlockEscape
 import com.astraedus.nudge.domain.emergency.EmergencyPass
 import com.astraedus.nudge.domain.logging.NudgeLog
 import com.astraedus.nudge.domain.model.BlockMode
+import com.astraedus.nudge.domain.webview.AppIncrementalState
+import com.astraedus.nudge.domain.webview.PauseWebviewConfig
+import com.astraedus.nudge.domain.webview.PauseWebviewResolvedItem
+import com.astraedus.nudge.domain.webview.PauseWebviewResolver
+import com.astraedus.nudge.domain.webview.PauseWebviewSelectionMode
+import kotlinx.coroutines.launch
 import com.astraedus.nudge.domain.usecase.RecordWalkAwayUseCase
 import com.astraedus.nudge.service.BlockLaunchGuard
 import com.astraedus.nudge.service.EmergencyPassManager
@@ -325,6 +331,8 @@ class BlockOverlayActivity : ComponentActivity() {
         // the pass is governed by its own Settings toggle alone (v1.10.0); see
         // [resolveEmergencyPassState], which owns the whole decision.
         var passState = EmergencyPassUiState()
+        var webviewConfig = PauseWebviewConfig()
+        var appIncrements: Map<String, AppIncrementalState> = emptyMap()
         // The redirect app, resolved BEFORE the first frame for the same reason as the messages: a
         // bubble that flashes "Pick a better app" and then turns into Wikipedia is a visible bug.
         // Re-checked on every delivery (RedirectAppPolicy.resolve), so a choice uninstalled or
@@ -344,6 +352,10 @@ class BlockOverlayActivity : ComponentActivity() {
                 nudgePreferences.customHardBlockMessages.first(), NudgeMessages.hardBlockMessages
             )
 
+            if (mode == BlockMode.WEBVIEW) {
+                webviewConfig = nudgePreferences.pauseWebviewConfig.first()
+                appIncrements = nudgePreferences.pauseWebviewAppIncrements.first()
+            }
             passState = resolveEmergencyPassState(
                 packageName = packageName,
                 passEnabled = nudgePreferences.emergencyPassEnabled.first(),
@@ -359,6 +371,25 @@ class BlockOverlayActivity : ComponentActivity() {
                 null
             }
         }
+        val effectiveDelaySeconds = if (mode == BlockMode.WEBVIEW) {
+            PauseWebviewResolver.computeEffectiveDelay(
+                baseDelaySeconds = delaySeconds,
+                appState = appIncrements[packageName],
+                config = webviewConfig,
+                nowMs = System.currentTimeMillis()
+            )
+        } else {
+            delaySeconds
+        }
+        val resolvedWebviewItem = if (mode == BlockMode.WEBVIEW) {
+            PauseWebviewResolver.resolveItem(webviewConfig)
+        } else null
+        if (mode == BlockMode.WEBVIEW && webviewConfig.selectionMode == PauseWebviewSelectionMode.ROUND_ROBIN) {
+            lifecycleScope.launch {
+                nudgePreferences.advanceRoundRobin()
+            }
+        }
+
         val redirect = RedirectAppController(
             repository = redirectAppRepository,
             scope = lifecycleScope,
@@ -470,6 +501,28 @@ class BlockOverlayActivity : ComponentActivity() {
                             nextPassMs = passState.nextPassMs,
                             onUseEmergencyPass = onUsePass,
                             redirect = redirectBubble
+                        )
+                    }
+
+                    BlockMode.WEBVIEW -> {
+                        WebviewContent(
+                            delaySeconds = effectiveDelaySeconds,
+                            initialItem = resolvedWebviewItem,
+                            allSites = webviewConfig.sites,
+                            autoProceedOnZero = webviewConfig.autoProceedOnZero,
+                            appLabel = appLabel,
+                            onComplete = { onTimerComplete() },
+                            onCancel = { navigateHome() },
+                            onSiteSelected = { siteId ->
+                                lifecycleScope.launch {
+                                    nudgePreferences.updatePauseWebviewSiteSelection(siteId)
+                                }
+                            },
+                            onTagSelected = { siteId, tagId ->
+                                lifecycleScope.launch {
+                                    nudgePreferences.updatePauseWebviewTagSelection(siteId, tagId)
+                                }
+                            }
                         )
                     }
 
@@ -601,6 +654,15 @@ class BlockOverlayActivity : ComponentActivity() {
 
     /** Timer finished -- user waited patiently, let them through to the blocked app. */
     private fun onTimerComplete() {
+        val modeName = intent.getStringExtra(EXTRA_BLOCK_MODE)
+        if (modeName == BlockMode.WEBVIEW.name) {
+            val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME) ?: ""
+            if (packageName.isNotBlank()) {
+                lifecycleScope.launch {
+                    nudgePreferences.recordAppFullOpen(packageName)
+                }
+            }
+        }
         runEffects(
             overlayLifecycle.onTimerCompleted(
                 hasPassthroughTarget = passthroughPackage(intent).isNotEmpty(),

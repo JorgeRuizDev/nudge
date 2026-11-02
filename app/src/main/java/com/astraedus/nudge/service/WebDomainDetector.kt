@@ -33,6 +33,8 @@ class WebDomainDetector @Inject constructor() {
             "com.chrome.beta" to listOf("url_bar", "omnibox_url_text"),
             "com.chrome.dev" to listOf("url_bar", "omnibox_url_text"),
             "com.brave.browser" to listOf("url_bar", "omnibox_url_text"),
+            "com.brave.browser_beta" to listOf("url_bar", "omnibox_url_text"),
+            "com.brave.browser_nightly" to listOf("url_bar", "omnibox_url_text"),
             "com.microsoft.emmx" to listOf("url_bar", "omnibox_url_text"),
             "com.kiwibrowser.browser" to listOf("url_bar", "omnibox_url_text"),
             // Firefox family. Modern Firefox uses a Jetpack-Compose toolbar whose address

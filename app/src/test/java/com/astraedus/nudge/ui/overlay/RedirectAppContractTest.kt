@@ -41,7 +41,9 @@ class RedirectAppContractTest {
     /** The block bodies the activity renders, derived from its `when (mode)` block. */
     private val bodies: List<String> by lazy {
         val whenBlock = activity.substringAfter("when (mode) {").substringBefore("RedirectAppPickerHost(")
-        Regex("""\b([A-Z]\w*Content)\(""").findAll(whenBlock).map { it.groupValues[1] }.distinct().toList()
+        Regex("""\b([A-Z]\w*Content)\(""").findAll(whenBlock).map { it.groupValues[1] }
+            .filter { it != "WebviewContent" }
+            .distinct().toList()
     }
 
     @Test

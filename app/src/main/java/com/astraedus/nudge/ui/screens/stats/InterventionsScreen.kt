@@ -323,6 +323,7 @@ private fun modeColor(mode: String): Color = when (mode) {
     // cost the same wait, and the chart reads as three kinds of block plus "other", not four.
     "HOLD" -> MaterialTheme.colorScheme.secondary
     "BREATHING" -> MaterialTheme.colorScheme.tertiary
+    "WEBVIEW" -> MaterialTheme.colorScheme.tertiary
     else -> MaterialTheme.colorScheme.surfaceVariant
 }
 

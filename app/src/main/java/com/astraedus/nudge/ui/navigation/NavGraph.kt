@@ -29,6 +29,7 @@ import com.astraedus.nudge.ui.screens.rules.RuleEditorScreen
 import com.astraedus.nudge.ui.screens.rules.RuleEditorViewModel
 import com.astraedus.nudge.ui.screens.settings.GrayscaleGuideScreen
 import com.astraedus.nudge.ui.screens.settings.MessagesEditorScreen
+import com.astraedus.nudge.ui.screens.settings.PauseWebviewSettingsScreen
 import com.astraedus.nudge.ui.screens.settings.SettingsScreen
 import com.astraedus.nudge.ui.screens.stats.AppDetailScreen
 import com.astraedus.nudge.ui.screens.stats.AppDetailViewModel
@@ -64,6 +65,7 @@ sealed class Screen(val route: String) {
         fun createRoute(packageName: String) = "app_detail/$packageName"
     }
     data object Nuke : Screen("nuke")
+    data object PauseWebviewSettings : Screen("pause_webview_settings")
 }
 
 @Composable
@@ -260,6 +262,9 @@ fun NudgeNavGraph(
                 onNavigateToGrayscaleGuide = {
                     navController.navigate(Screen.GrayscaleGuide.route)
                 },
+                onNavigateToPauseWebviewSettings = {
+                    navController.navigate(Screen.PauseWebviewSettings.route)
+                },
                 onNavigateToMessagesEditor = {
                     navController.navigate(Screen.MessagesEditor.route)
                 }
@@ -268,6 +273,12 @@ fun NudgeNavGraph(
 
         composable(Screen.GrayscaleGuide.route) {
             GrayscaleGuideScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.PauseWebviewSettings.route) {
+            PauseWebviewSettingsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

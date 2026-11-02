@@ -16,6 +16,15 @@ import com.astraedus.nudge.domain.ContentFilterBlocklist
 import com.astraedus.nudge.domain.ContentFilterUserList
 import com.astraedus.nudge.domain.nuke.NukeKeyKind
 import com.astraedus.nudge.domain.nuke.NukeState
+import com.astraedus.nudge.domain.webview.AppIncrementalState
+import com.astraedus.nudge.domain.webview.PauseWebviewConfig
+import com.astraedus.nudge.domain.webview.PauseWebviewSite
+import com.astraedus.nudge.domain.webview.PauseWebviewTag
+import com.astraedus.nudge.domain.webview.PauseWebviewResolver
+import com.astraedus.nudge.domain.webview.PauseWebviewSelectionMode
+import com.astraedus.nudge.domain.webview.PauseWebviewResetStrategy
+import org.json.JSONArray
+import org.json.JSONObject
 import com.astraedus.nudge.service.GlobalEnabledProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -60,6 +69,8 @@ class NudgePreferences @Inject constructor(
         val NUKE_KEY_HASH = stringPreferencesKey("nuke_key_hash")
         val NUKE_KEY_KIND = stringPreferencesKey("nuke_key_kind")
         val NUKE_INTRO_SEEN = booleanPreferencesKey("nuke_intro_seen")
+        val PAUSE_WEBVIEW_CONFIG_JSON = stringPreferencesKey("pause_webview_config_json")
+        val PAUSE_WEBVIEW_APP_INCREMENTS_JSON = stringPreferencesKey("pause_webview_app_increments_json")
     }
 
     /**
@@ -464,6 +475,73 @@ class NudgePreferences @Inject constructor(
         context.dataStore.edit { prefs -> RedirectAppPref.write(prefs, packageName) }
     }
 
+    // --- Pause Webviews (docs / UI) ------------------------------------------
+
+    val pauseWebviewConfig: Flow<PauseWebviewConfig> = context.dataStore.data
+        .map { prefs -> parsePauseWebviewConfig(prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON]) }
+        .distinctUntilChanged()
+
+    suspend fun savePauseWebviewConfig(config: PauseWebviewConfig) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON] = serializePauseWebviewConfig(config)
+        }
+    }
+
+    suspend fun updatePauseWebviewTagSelection(siteId: String, tagId: String) {
+        context.dataStore.edit { prefs ->
+            val current = parsePauseWebviewConfig(prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON])
+            val updatedSites = current.sites.map { site ->
+                if (site.id == siteId) site.copy(selectedTagId = tagId) else site
+            }
+            val updated = current.copy(sites = updatedSites)
+            prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON] = serializePauseWebviewConfig(updated)
+        }
+    }
+
+    suspend fun updatePauseWebviewSiteSelection(siteId: String) {
+        context.dataStore.edit { prefs ->
+            val current = parsePauseWebviewConfig(prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON])
+            val updated = current.copy(lastSelectedSiteId = siteId)
+            prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON] = serializePauseWebviewConfig(updated)
+        }
+    }
+
+    suspend fun advanceRoundRobin() {
+        context.dataStore.edit { prefs ->
+            val current = parsePauseWebviewConfig(prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON])
+            val updated = PauseWebviewResolver.advanceRoundRobin(current)
+            prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON] = serializePauseWebviewConfig(updated)
+        }
+    }
+
+    val pauseWebviewAppIncrements: Flow<Map<String, AppIncrementalState>> = context.dataStore.data
+        .map { prefs -> parseAppIncrements(prefs[Keys.PAUSE_WEBVIEW_APP_INCREMENTS_JSON]) }
+        .distinctUntilChanged()
+
+    suspend fun recordAppFullOpen(packageName: String, nowMs: Long = System.currentTimeMillis()) {
+        if (packageName.isBlank()) return
+        context.dataStore.edit { prefs ->
+            val config = parsePauseWebviewConfig(prefs[Keys.PAUSE_WEBVIEW_CONFIG_JSON])
+            val increments = parseAppIncrements(prefs[Keys.PAUSE_WEBVIEW_APP_INCREMENTS_JSON]).toMutableMap()
+            val current = increments[packageName]
+            val updated = PauseWebviewResolver.computeStateAfterFullOpen(current, config, nowMs)
+            increments[packageName] = updated
+            prefs[Keys.PAUSE_WEBVIEW_APP_INCREMENTS_JSON] = serializeAppIncrements(increments)
+        }
+    }
+
+    suspend fun resetAppIncrementalSeconds(packageName: String? = null) {
+        context.dataStore.edit { prefs ->
+            if (packageName == null) {
+                prefs.remove(Keys.PAUSE_WEBVIEW_APP_INCREMENTS_JSON)
+            } else {
+                val increments = parseAppIncrements(prefs[Keys.PAUSE_WEBVIEW_APP_INCREMENTS_JSON]).toMutableMap()
+                increments.remove(packageName)
+                prefs[Keys.PAUSE_WEBVIEW_APP_INCREMENTS_JSON] = serializeAppIncrements(increments)
+            }
+        }
+    }
+
     // --- Backup: the settings an export file carries (see [ExportedSettings]) ---------------
 
     /**
@@ -530,5 +608,176 @@ class NudgePreferences @Inject constructor(
             settings.customDelaySubtitles?.let { prefs[Keys.CUSTOM_DELAY_SUBTITLES] = it }
             settings.customHardBlockMessages?.let { prefs[Keys.CUSTOM_HARD_BLOCK_MESSAGES] = it }
         }
+    }
+}
+
+internal fun serializePauseWebviewConfig(config: PauseWebviewConfig): String {
+    val json = JSONObject()
+    val sitesArray = JSONArray()
+    config.sites.forEach { site ->
+        val siteObj = JSONObject()
+        siteObj.put("id", site.id)
+        siteObj.put("name", site.name)
+        if (site.selectedTagId != null) {
+            siteObj.put("selectedTagId", site.selectedTagId)
+        }
+        val tagsArray = JSONArray()
+        site.tags.forEach { tag ->
+            val tagObj = JSONObject()
+            tagObj.put("id", tag.id)
+            tagObj.put("tag", tag.tag)
+            tagObj.put("label", tag.label)
+            tagObj.put("url", tag.url)
+            tagsArray.put(tagObj)
+        }
+        siteObj.put("tags", tagsArray)
+        sitesArray.put(siteObj)
+    }
+    json.put("sites", sitesArray)
+    json.put("selectionMode", config.selectionMode.name)
+    if (config.lastSelectedSiteId != null) {
+        json.put("lastSelectedSiteId", config.lastSelectedSiteId)
+    }
+    json.put("roundRobinIndex", config.roundRobinIndex)
+    json.put("incrementalSeconds", config.incrementalSeconds)
+    json.put("maxIncrementalSeconds", config.maxIncrementalSeconds)
+    json.put("resetStrategy", config.resetStrategy.name)
+    json.put("resetHourOfDay", config.resetHourOfDay)
+    json.put("resetMinuteOfDay", config.resetMinuteOfDay)
+    json.put("inactivityCooldownMinutes", config.inactivityCooldownMinutes)
+    json.put("autoProceedOnZero", config.autoProceedOnZero)
+    return json.toString()
+}
+
+internal fun parsePauseWebviewConfig(raw: String?): PauseWebviewConfig {
+    if (raw.isNullOrBlank()) {
+        return PauseWebviewConfig(sites = PauseWebviewConfig.DEFAULT_SITES)
+    }
+    return try {
+        val json = JSONObject(raw)
+        val sitesList = mutableListOf<PauseWebviewSite>()
+        val sitesArray = json.optJSONArray("sites")
+        if (sitesArray != null) {
+            for (i in 0 until sitesArray.length()) {
+                val siteObj = sitesArray.optJSONObject(i) ?: continue
+                val id = siteObj.optString("id").takeIf { it.isNotBlank() } ?: continue
+                val name = siteObj.optString("name", "Web")
+                val selectedTagId = if (siteObj.isNull("selectedTagId")) null else siteObj.optString("selectedTagId").takeIf { it.isNotBlank() }
+                val tagsList = mutableListOf<PauseWebviewTag>()
+                val tagsArray = siteObj.optJSONArray("tags")
+                if (tagsArray != null) {
+                    for (j in 0 until tagsArray.length()) {
+                        val tagObj = tagsArray.optJSONObject(j) ?: continue
+                        val tagId = tagObj.optString("id").takeIf { it.isNotBlank() } ?: continue
+                        val tag = tagObj.optString("tag")
+                        val label = tagObj.optString("label")
+                        val url = tagObj.optString("url")
+                        tagsList.add(PauseWebviewTag(id = tagId, tag = tag, label = label, url = url))
+                    }
+                }
+                sitesList.add(
+                    PauseWebviewSite(
+                        id = id,
+                        name = name,
+                        tags = tagsList,
+                        selectedTagId = selectedTagId
+                    )
+                )
+            }
+        } else {
+            val legacyItems = json.optJSONArray("items")
+            if (legacyItems != null && legacyItems.length() > 0) {
+                val migratedTags = mutableListOf<PauseWebviewTag>()
+                for (i in 0 until legacyItems.length()) {
+                    val itemObj = legacyItems.optJSONObject(i) ?: continue
+                    val id = itemObj.optString("id").takeIf { it.isNotBlank() } ?: continue
+                    val tag = itemObj.optString("tag")
+                    val url = itemObj.optString("url")
+                    migratedTags.add(PauseWebviewTag(id = id, tag = tag, label = tag, url = url))
+                }
+                if (migratedTags.isNotEmpty()) {
+                    sitesList.add(
+                        PauseWebviewSite(
+                            id = "default_migrated_site",
+                            name = "Web",
+                            tags = migratedTags,
+                            selectedTagId = migratedTags.firstOrNull()?.id
+                        )
+                    )
+                }
+            }
+        }
+
+        val selectionModeStr = json.optString("selectionMode", PauseWebviewSelectionMode.ROUND_ROBIN.name)
+        val selectionMode = try {
+            PauseWebviewSelectionMode.valueOf(selectionModeStr)
+        } catch (_: Exception) {
+            PauseWebviewSelectionMode.ROUND_ROBIN
+        }
+        val lastSelectedSiteId = if (json.isNull("lastSelectedSiteId")) {
+            if (json.isNull("lastSelectedId")) null else json.optString("lastSelectedId").takeIf { it.isNotBlank() }
+        } else json.optString("lastSelectedSiteId").takeIf { it.isNotBlank() }
+        val roundRobinIndex = json.optInt("roundRobinIndex", 0)
+        val incrementalSeconds = json.optInt("incrementalSeconds", 0)
+        val maxIncrementalSeconds = json.optInt("maxIncrementalSeconds", 120)
+        val resetStrategyStr = json.optString("resetStrategy", PauseWebviewResetStrategy.TIME_OF_DAY.name)
+        val resetStrategy = try {
+            PauseWebviewResetStrategy.valueOf(resetStrategyStr)
+        } catch (_: Exception) {
+            PauseWebviewResetStrategy.TIME_OF_DAY
+        }
+        val resetHourOfDay = json.optInt("resetHourOfDay", 0)
+        val resetMinuteOfDay = json.optInt("resetMinuteOfDay", 0)
+        val inactivityCooldownMinutes = json.optInt("inactivityCooldownMinutes", 120)
+        val autoProceedOnZero = json.optBoolean("autoProceedOnZero", false)
+
+        PauseWebviewConfig(
+            sites = if (sitesList.isEmpty() && !json.has("sites") && !json.has("items")) PauseWebviewConfig.DEFAULT_SITES else sitesList,
+            selectionMode = selectionMode,
+            lastSelectedSiteId = lastSelectedSiteId,
+            roundRobinIndex = roundRobinIndex,
+            incrementalSeconds = incrementalSeconds,
+            maxIncrementalSeconds = maxIncrementalSeconds,
+            resetStrategy = resetStrategy,
+            resetHourOfDay = resetHourOfDay,
+            resetMinuteOfDay = resetMinuteOfDay,
+            inactivityCooldownMinutes = inactivityCooldownMinutes,
+            autoProceedOnZero = autoProceedOnZero
+        )
+    } catch (_: Exception) {
+        PauseWebviewConfig(sites = PauseWebviewConfig.DEFAULT_SITES)
+    }
+}
+
+internal fun serializeAppIncrements(increments: Map<String, AppIncrementalState>): String {
+    val json = JSONObject()
+    increments.forEach { (pkg, state) ->
+        val obj = JSONObject()
+        obj.put("accumulatedSeconds", state.accumulatedSeconds)
+        obj.put("lastAccessTimestampMs", state.lastAccessTimestampMs)
+        obj.put("lastResetTimestampMs", state.lastResetTimestampMs)
+        json.put(pkg, obj)
+    }
+    return json.toString()
+}
+
+internal fun parseAppIncrements(raw: String?): Map<String, AppIncrementalState> {
+    if (raw.isNullOrBlank()) return emptyMap()
+    return try {
+        val json = JSONObject(raw)
+        val result = mutableMapOf<String, AppIncrementalState>()
+        val keys = json.keys()
+        while (keys.hasNext()) {
+            val pkg = keys.next()
+            val obj = json.optJSONObject(pkg) ?: continue
+            result[pkg] = AppIncrementalState(
+                accumulatedSeconds = obj.optInt("accumulatedSeconds", 0),
+                lastAccessTimestampMs = obj.optLong("lastAccessTimestampMs", 0L),
+                lastResetTimestampMs = obj.optLong("lastResetTimestampMs", 0L)
+            )
+        }
+        result
+    } catch (_: Exception) {
+        emptyMap()
     }
 }

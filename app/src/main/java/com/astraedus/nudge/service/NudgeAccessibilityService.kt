@@ -2100,6 +2100,12 @@ class NudgeAccessibilityService : AccessibilityService() {
             // For browsers, evaluate web domain blocking instead of (or alongside) app blocking.
             // Not for a NUKED browser: Nuke blocks the app itself, whatever site is open.
             if (!nuked && entryPoint.webDomainDetector().isBrowser(packageName)) {
+                val appDecision = entryPoint.evaluateBlockUseCase().invoke(packageName)
+                if (appDecision is BlockDecision.Block) {
+                    log.d("whole-app decision package=$packageName decision=$appDecision")
+                    handleDecision(appDecision, packageName)
+                    return@launch
+                }
                 evaluateWebDomain(packageName)
             } else {
                 val decision = entryPoint.evaluateBlockUseCase().invoke(packageName)
@@ -2161,7 +2167,7 @@ class NudgeAccessibilityService : AccessibilityService() {
 
         if (enforceWebCooldown(browserPackage, extractedDomain)) return
 
-        val result = entryPoint.evaluateBlockUseCase().evaluateWebDomain(urlBarText)
+        val result = entryPoint.evaluateBlockUseCase().evaluateWebDomain(urlBarText, browserPackage)
         log.d("web domain: url=$urlBarText decision=${result.decision}")
 
         when (result.decision) {

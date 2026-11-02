@@ -101,6 +101,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToGrayscaleGuide: () -> Unit = {},
     onNavigateToMessagesEditor: () -> Unit = {},
+    onNavigateToPauseWebviewSettings: () -> Unit = {},
     backupViewModel: BackupViewModel = hiltViewModel(),
     redirectAppViewModel: RedirectAppSettingsViewModel = hiltViewModel()
 ) {
@@ -494,6 +495,15 @@ fun SettingsScreen(
 
             // The same picker as the block screen's bubble, findable without being blocked first.
             RedirectAppSettingsRow(redirectAppViewModel.controller)
+
+            ListItem(
+                headlineContent = { Text("Pause Webviews") },
+                supportingContent = {
+                    Text("Configure remote websites, tags, rotation, and display time")
+                },
+                leadingContent = { Icon(Icons.Outlined.Layers, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onNavigateToPauseWebviewSettings)
+            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 

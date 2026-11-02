@@ -17,6 +17,7 @@ import com.astraedus.nudge.domain.model.BlockRuleData
 import com.astraedus.nudge.domain.model.GroupMembership
 import com.astraedus.nudge.domain.model.WebBlockMode
 import com.astraedus.nudge.domain.nuke.NukeEnforcement
+import com.astraedus.nudge.service.WebDomainDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -152,13 +153,22 @@ class EvaluateBlockUseCase @Inject constructor(
      * @param urlBarText The text from the browser's URL bar
      * @return BlockDecision and the matching rule's associated packageName (for usage tracking)
      */
-    suspend fun evaluateWebDomain(urlBarText: String): WebDomainBlockResult {
+    suspend fun evaluateWebDomain(urlBarText: String, browserPackage: String? = null): WebDomainBlockResult {
         val allRules = blockRuleRepository.getEnabledRules().first()
 
         // Find rules with webDomains that match the detected URL AND actually enforce something.
         val matchingRules = allRules.mapNotNull { rule ->
             if (rule.webDomains == null || !WebDomainMatcher.matches(urlBarText, rule.webDomains)) {
                 return@mapNotNull null
+            }
+            if (browserPackage != null && rule.packageName != null) {
+                // If a rule is configured for a specific browser package (e.g. com.brave.browser_beta),
+                // do not apply it when browsing in another browser (e.g. com.brave.browser).
+                val isRuleForAnotherBrowser = WebDomainDetector.BROWSER_URL_BAR_IDS.containsKey(rule.packageName) &&
+                    rule.packageName != browserPackage
+                if (isRuleForAnotherBrowser) {
+                    return@mapNotNull null
+                }
             }
             val webMode = WebBlockMode.resolve(rule.mode, rule.webBlockMode)
             if (webMode == BlockMode.NONE) null else rule to webMode
@@ -286,6 +296,7 @@ class EvaluateBlockUseCase @Inject constructor(
             BlockMode.DELAY -> "Delay"
             BlockMode.HOLD -> "Hold"
             BlockMode.BREATHING -> "Breathing"
+            BlockMode.WEBVIEW -> "Webview"
             BlockMode.NONE -> "Off" // unreachable: NONE rules are filtered out before this point
         }
         return "Web - $modeName"
