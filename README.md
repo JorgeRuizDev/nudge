@@ -65,6 +65,7 @@ Nudge is open source, requests zero internet permissions, and keeps all your dat
 ### Core blocking
 
 - **Delay-to-open** -- Before opening a blocked app, you wait through a breathing exercise or countdown timer. Not a hard lock -- a moment of friction that breaks the autopilot habit loop. This is the feature no other open-source blocker has.
+- **Webview Pause** -- Replace empty waiting with constructive reading or learning. Displays an interactive web page (e.g. Wikipedia Random, daily articles, language learning, or custom web tools) in the overlay during the delay period, complete with configurable sites, nested tags/links, selection strategies (Round Robin or Last Selected), and progressive delay timers.
 - **Hard blocking** -- Completely block apps you don't want to access at all.
 - **Daily time budgets** -- Allow 30 minutes of Instagram per day, then block. You choose the limit.
 - **App groups** -- Create a "Social Media" group, configure once, apply to all.
@@ -82,7 +83,7 @@ Uses Accessibility Service to detect in-app navigation to these screens.
 
 - **Schedule rules** -- Block apps on specific days and times (e.g. block social media 9-5 on weekdays). Supports overnight schedules that span midnight.
 - **Interaction counter** -- Floating overlay showing reels/shorts scrolled per session. Escalating colors warn you as the count rises.
-- **Auto-kick** -- Automatically sends you home after N scrolls. Configurable threshold with cooldown.
+- **Auto-kick** -- Automatically sends you home after N scrolls. Configurable threshold with cooldown. Revokes passthrough grants immediately upon eviction so you cannot immediately reopen the app without completing the block exercise again.
 - **Grayscale mode** -- Force your screen to grayscale to make apps less appealing.
 - **Motivational messages** -- Rotating messages on overlay screens to reinforce your intent.
 - **"Walked Away" tracking** -- Every time you choose to leave instead of waiting, Nudge counts it.
@@ -130,10 +131,10 @@ AccessibilityService detects foreground app change
   -> If in-app rules exist: InAppDetector inspects navigation state
      (checks resource IDs to identify Shorts/Reels; Instagram Reels is recognised
      by the reel player's own container, not by which bottom tab is selected)
-  -> Decision: ALLOW | HARD_BLOCK | DELAY | BREATHING
+  -> Decision: ALLOW | HARD_BLOCK | DELAY | BREATHING | WEBVIEW_PAUSE
   -> If blocked: full-screen overlay appears
-  -> User can wait through the timer, or go back home
-  -> After delay/breathing completes: passthrough until user leaves the app
+  -> User can wait through the timer, read webview content, or go back home
+  -> After delay/breathing/webview completes: passthrough until user leaves the app
 ```
 
 The delay/breathing modes are the core idea. They don't lock you out -- they insert a moment of intentional friction. Research shows this small pause is enough to break the automatic habit loop that drives most mindless phone usage.
@@ -176,6 +177,7 @@ No internet permission. No camera. No contacts. No location. No storage.
 - [x] Usage stats dashboard with charts
 - [x] Export/import rules
 - [x] Grayscale mode
+- [x] Webview Pause overlay with custom sites, tags & progressive timers
 - [ ] QR code unlock (physical friction)
 - [ ] NFC tag unlock
 - [ ] Widget support

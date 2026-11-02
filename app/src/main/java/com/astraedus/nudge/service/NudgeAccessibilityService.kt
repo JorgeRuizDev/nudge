@@ -1209,6 +1209,7 @@ class NudgeAccessibilityService : AccessibilityService() {
             counterOverlayManager = entryPoint.counterOverlayManager(),
             counterCache = counterCache,
             logger = entryPoint.nudgeLogger(),
+            passthroughManager = entryPoint.passthroughManager(),
             // A kick is a wall too. A web kick is keyed by `web:<domain>`, not a package, so it is
             // reported as the browser the user was actually in, plus the site that was kicked.
             onKicked = { key ->

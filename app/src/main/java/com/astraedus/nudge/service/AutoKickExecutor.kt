@@ -24,6 +24,7 @@ class AutoKickExecutor(
     private val counterOverlayManager: CounterOverlayManagerApi,
     private val counterCache: CounterCacheRefresher,
     logger: NudgeLog,
+    private val passthroughManager: PassthroughManager? = null,
     private val onKicked: (String) -> Unit = {},
     private val goHome: () -> Unit
 ) {
@@ -43,6 +44,13 @@ class AutoKickExecutor(
         if (cooldownSeconds > 0) {
             interactionTracker.setCooldown(packageName, cooldownSeconds.toLong() * 1000L)
         }
+
+        // An auto-kick is an eviction, not an absence. Even if the rule had "keep the pass on short
+        // trips" on (#110), the user must not be able to immediately reopen the app without
+        // completing the block exercise again. Revoking the grant and dropping the sitting BEFORE
+        // going home ensures that the resulting Home signal cannot be classified as a launcher
+        // absence (homeIsAbsence) and keep the pass alive.
+        passthroughManager?.resetSitting()
 
         goHome()
         onKicked(packageName)
